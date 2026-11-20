@@ -1,0 +1,15 @@
+{
+  "name": "revrec-recon",
+  "version": "1.0.0",
+  "description": "收入确认对账工具：订单/履约/开票/退款四路对账，差异分类、调整审批、不可变审计",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node src/seed.js",
+    "verify": "node test/verify.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

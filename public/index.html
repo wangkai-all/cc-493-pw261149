@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>收入确认对账工具</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">◈</span>
+    <div>
+      <h1>收入确认对账</h1>
+      <p class="subtitle">订单 · 履约 · 开票 · 退款 四路核对</p>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" data-page="overview" role="tab">总览</button>
+    <button class="tab" data-page="chain" role="tab">对账链路</button>
+    <button class="tab" data-page="diffs" role="tab">差异证据</button>
+    <button class="tab" data-page="approvals" role="tab">调整审批</button>
+    <button class="tab" data-page="runs" role="tab">版本结果</button>
+  </nav>
+  <div class="audit-badge" id="auditBadge" title="审计账本哈希链状态">…</div>
+</header>
+
+<main id="main">
+  <!-- 总览 -->
+  <section class="page" id="page-overview">
+    <div class="hero-row">
+      <div class="hero">
+        <div class="hero-label">待处理真实冲突</div>
+        <div class="hero-value" id="heroConflict">—</div>
+        <div class="hero-sub" id="heroConflictSub"></div>
+      </div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <h2>差异分类分布</h2>
+        <span class="card-sub" id="distRunLabel"></span>
+      </div>
+      <div class="segbar" id="segbar" role="img" aria-label="差异分类分布"></div>
+      <div class="seglegend" id="seglegend"></div>
+      <table class="data-table" id="distTable">
+        <thead><tr><th>分类</th><th class="num">订单数</th><th class="num">差异绝对值合计</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>最近审计记录</h2><span class="card-sub">append-only 哈希链</span></div>
+      <table class="data-table" id="auditTable">
+        <thead><tr><th>序号</th><th>类型</th><th>引用</th><th>时间</th><th>哈希</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 对账链路 -->
+  <section class="page" id="page-chain" hidden>
+    <div class="card">
+      <div class="card-head">
+        <h2>订单资金链路</h2>
+        <select id="chainOrderSelect" class="input"></select>
+      </div>
+      <div class="chain-layout">
+        <div class="chain-timeline" id="chainTimeline"></div>
+        <aside class="chain-side" id="chainSide"></aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- 差异证据 -->
+  <section class="page" id="page-diffs" hidden>
+    <div class="card">
+      <div class="card-head">
+        <h2>差异与证据</h2>
+        <div class="row-gap">
+          <select id="diffRunSelect" class="input"></select>
+          <div class="chips" id="diffChips"></div>
+        </div>
+      </div>
+      <div id="diffList"></div>
+    </div>
+  </section>
+
+  <!-- 调整审批 -->
+  <section class="page" id="page-approvals" hidden>
+    <div class="card">
+      <div class="card-head"><h2>待审批调整</h2><span class="card-sub" id="pendingCount"></span></div>
+      <div id="pendingList"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h2>审批历史</h2></div>
+      <table class="data-table" id="adjHistoryTable">
+        <thead><tr><th>单号</th><th>订单</th><th>调整侧</th><th class="num">金额</th><th>原因</th><th>状态</th><th>审批人</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 版本结果 -->
+  <section class="page" id="page-runs" hidden>
+    <div class="card">
+      <div class="card-head">
+        <h2>对账版本</h2>
+        <form id="runForm" class="row-gap">
+          <input class="input" type="month" id="runPeriod" required>
+          <button class="btn primary" type="submit">执行对账</button>
+        </form>
+      </div>
+      <table class="data-table" id="runsTable">
+        <thead><tr><th>运行</th><th>期间</th><th>版本</th><th>状态</th><th class="num">订单</th><th class="num">无差异</th><th class="num">可解释</th><th class="num">待补数据</th><th class="num">真实冲突</th><th class="num">差异绝对值</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="card" id="runResultsCard" hidden>
+      <div class="card-head"><h2 id="runResultsTitle">运行结果</h2></div>
+      <table class="data-table" id="runResultsTable">
+        <thead><tr><th>订单</th><th class="num">订单金额</th><th class="num">确认收入</th><th class="num">开票净额</th><th class="num">退款</th><th class="num">差异</th><th>分类</th><th>规则</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- 调整弹窗 -->
+<dialog id="adjDialog" class="dialog">
+  <form method="dialog" id="adjForm">
+    <h3>发起调整</h3>
+    <p class="dialog-sub" id="adjDialogSub"></p>
+    <label>调整侧
+      <select id="adjSide" class="input">
+        <option value="invoiced">开票侧（红冲/补开）</option>
+        <option value="recognized">收入侧（补确认/冲回）</option>
+      </select>
+    </label>
+    <label>金额（元，带符号）
+      <input id="adjAmount" class="input" type="number" step="0.01" required>
+    </label>
+    <label>原因
+      <input id="adjReason" class="input" type="text" required placeholder="例如：红冲原票按修订后金额重开">
+    </label>
+    <div class="dialog-actions">
+      <button class="btn" value="cancel" formnovalidate>取消</button>
+      <button class="btn primary" id="adjSubmit" value="default">提交审批</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
